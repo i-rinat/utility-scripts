@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+
+from collections import namedtuple
+from pprint import pprint
+import multiprocessing
+import os
+import subprocess
+import sys
+import tqdm
+
+CHUNK_BYTESIZE = 100 * 1024 * 1024
+CHUNK_FILECOUNT = 300
+PARALLEL = 8
+
+WorkerResult = namedtuple('WorkerResult',
+                          ['bad_files', 'unknown_files', 'task'])
+
+
+def verify_files(file_list):
+    bad_files = []
+    unknown_files = []
+
+    # Put files into OS read cache first.
+    for fname in file_list:
+        with open(fname, 'rb') as f:
+            f.read()
+
+    # Process files, hopefully cached.
+    for fname in file_list:
+        lc_fname = fname.lower()
+        known_file_type = True
+
+        if lc_fname.endswith('.jpg') or lc_fname.endswith('.jpeg'):
+            r = subprocess.run(['djpeg', '-fast', fname], capture_output=True)
+
+        elif lc_fname.endswith('.png'):
+            r = subprocess.run(['pngtopnm', fname], capture_output=True)
+
+        elif lc_fname.endswith('.gif'):
+            r = subprocess.run(['gifsicle', fname], capture_output=True)
+
+        elif any(lc_fname.endswith(x) for x in ['.txt', '.mp4', '.mov']):
+            # Ignore.
+            continue
+        else:
+            print('unknown: {}'.format(fname))
+            unknown_files.append(fname)
+            continue
+
+        if r.returncode != 0:
+            print('bad: {}'.format(fname))
+            bad_files.append(fname)
+
+    return WorkerResult(bad_files=bad_files, unknown_files=unknown_files,
+                        task=file_list)
+
+
+def process_directory(directory_name):
+    file_list = []
+    for root, subdirs, files in os.walk(directory_name):
+        if len(files) == 0:
+            continue
+
+        for fname in files:
+            lc_fname = fname.lower()
+            full_fname = os.path.join(root, fname)
+
+            file_list.append(full_fname)
+
+    total_files = len(file_list)
+    work_chunks = []
+    while len(file_list) > 0:
+        piece = []
+        piece_bytesize = 0
+
+        while (len(file_list) > 0 and len(piece) < CHUNK_FILECOUNT and
+               piece_bytesize < CHUNK_BYTESIZE):
+            fname = file_list.pop(0)
+            piece.append(fname)
+            piece_bytesize += os.path.getsize(fname)
+
+        work_chunks.append(piece)
+
+    p = multiprocessing.Pool(PARALLEL)
+    progress_bar = tqdm.tqdm(total=total_files)
+
+    results = []
+    for idx, res in enumerate(p.imap_unordered(verify_files, work_chunks)):
+        progress_bar.update(len(res.task))
+        results.append(res)
+
+    progress_bar.close()
+
+    bad_files = []
+    unknown_files = []
+    for r in results:
+        bad_files.extend(r.bad_files)
+        unknown_files.extend(r.unknown_files)
+
+    if len(bad_files) > 0:
+        print('Bad files were found ({}).'.format(len(bad_files)))
+
+    if len(unknown_files) > 0:
+        print('Files of unknown type were found ({}).'.
+              format(len(unknown_files)))
+
+    with open('verify-report.txt', 'w') as f:
+        for fname in bad_files:
+            f.write('bad: {}\n'.format(fname))
+
+        for fname in unknown_files:
+            f.write('unknown: {}\n'.format(fname))
+
+    if len(bad_files) == 0 and len(unknown_files) == 0:
+        print('All OK.')
+
+
+def main():
+    process_directory(sys.argv[1])
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\ncaught KeyboardInterrupt')

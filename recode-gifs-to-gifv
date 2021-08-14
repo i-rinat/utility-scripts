@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in *.gif; do
+    echo
+    echo "-------------------------------------"
+    vid2webm "$i" "${i}v"
+done

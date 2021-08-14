@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+'''
+    Split image into vertically stacked slices.
+'''
+
+import sys
+from PIL import Image
+import os
+import math
+
+
+def show_usage():
+    print('Splits image into vertically stacked slices.')
+    print('Usage: img-split-v <input-image> '
+          '[slice-height [slice-height [slice-height [...]]]')
+
+
+def main(argv):
+    if len(argv) <= 2:
+        show_usage()
+        return 2
+
+    src_image_filename = sys.argv[1]
+    src_image = Image.open(src_image_filename)
+    print('Source image is {}x{}.'.format(src_image.width,
+                                          src_image.height))
+
+    marks = [0]
+    previous_mark = 0
+    current_mark = 0
+
+    for p in sys.argv[2:]:
+        if len(p) == 0:
+            continue
+        try:
+            if p[0] == '=':
+                current_mark = max(current_mark, int(p[1:]), current_mark)
+            elif p[0] == '+':
+                current_mark += int(p[1:])
+            else:
+                current_mark += int(p)
+        except ValueError:
+            continue
+
+        current_mark = min(current_mark, src_image.height)
+        if current_mark == previous_mark:
+            continue
+
+        marks.append(current_mark)
+        previous_mark = current_mark
+
+    if current_mark != src_image.height:
+        marks.append(src_image.height)
+
+    basename = os.path.splitext(src_image_filename)[0]
+
+    format_string = '{:0' + str(int(math.log10(len(marks)) + 1)) + 'd}'
+    for idx in range(1, len(marks)):
+        crop_rect = (0, marks[idx - 1], src_image.width, marks[idx])
+        dst_filename = basename + '-' + format_string.format(idx) + '.png'
+        print('saving {} to {}'.format(crop_rect, dst_filename))
+        im = src_image.crop(crop_rect)
+        im.save(dst_filename)
+        del im
+
+    return 0
+
+
+if __name__ == '__main__':
+    main(sys.argv)

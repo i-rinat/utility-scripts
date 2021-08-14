@@ -1,0 +1,6 @@
+#!/bin/sh
+
+filename=${1%.*}
+extension=${1##*.}
+ffmpeg -hide_banner -i "$1" -c:v copy -an "$filename-.$extension"
+touch -r "$1" "$filename-.$extension"

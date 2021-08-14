@@ -1,0 +1,46 @@
+#!/bin/bash
+
+if [[ -z "$2" ]]; then OUT="$1.webm"; else OUT="$2"; fi
+
+frame_info=$(ffprobe -loglevel error -select_streams v:0 -show_frames "$1" | awk '{print;if("[/FRAME]"==$0)exit;}' )
+color_range=$(echo "$frame_info" | awk -F= '/^color_range=/{print$2;exit}')
+color_space=$(echo "$frame_info" | awk -F= '/^color_space=/{print$2;exit}')
+color_primaries=$(echo "$frame_info" | awk -F= '/^color_primaries=/{print$2;exit}')
+color_transfer=$(echo "$frame_info" | awk -F= '/^color_transfer=/{print$2;exit}' | sed 's/bt470bg/gamma28/')
+height=$(echo "$frame_info" | awk -F= '/^height=/{print$2;exit}')
+width=$(echo "$frame_info" | awk -F= '/^width=/{print$2;exit}')
+size=$((height < width ? height : width))
+
+if [[ $size -le 360 ]]; then    crf=35
+elif [[ $size -le 480 ]]; then  crf=34
+elif [[ $size -le 720 ]]; then  crf=32
+elif [[ $size -le 1080 ]]; then crf=31
+elif [[ $size -le 1440 ]]; then crf=24
+else crf=15; fi
+
+ffmpeg -hide_banner -i "$1"                                \
+    -max_muxing_queue_size 99999                           \
+    ${color_range:+-color_range} $color_range              \
+    ${color_space:+-colorspace} $color_space               \
+    ${color_primaries:+-color_primaries} $color_primaries  \
+    ${color_transfer:+-color_trc} $color_transfer          \
+    -c:v libvpx-vp9 -pass 1 -crf $crf -b:v 0               \
+    -threads 8 -tile-columns 6 -frame-parallel 1 -speed 1  \
+    -passlogfile /tmp/vid2webm-passlog-$$                  \
+    -c:a libopus -b:a 96k                                  \
+    -f webm -y /dev/null
+
+ffmpeg -hide_banner -i "$1"                                \
+    -max_muxing_queue_size 99999                           \
+    ${color_range:+-color_range} $color_range              \
+    ${color_space:+-colorspace} $color_space               \
+    ${color_primaries:+-color_primaries} $color_primaries  \
+    ${color_transfer:+-color_trc} $color_transfer          \
+    -c:v libvpx-vp9 -pass 2 -crf $crf -b:v 0 -speed 1      \
+    -threads 8 -tile-columns 6 -frame-parallel 1           \
+    -auto-alt-ref 1 -lag-in-frames 25                      \
+    -passlogfile /tmp/vid2webm-passlog-$$                  \
+    -c:a libopus -b:a 96k                                  \
+    -f webm "$OUT"
+
+touch -r "$1" "$OUT"

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo | xclip -selection clipboard -in
+while sleep 0.02; do
+    xclip -selection clipboard -out
+    echo
+done

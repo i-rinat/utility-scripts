@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+import time
+from datetime import datetime
+from bs4 import BeautifulSoup
+import requests
+
+if sys.version_info[0] != 3:
+    print('This script requires Python 3.x.')
+    sys.exit(1)
+
+session = requests.Session()
+
+def get_posts(url, idx):
+    r = session.get(url)
+    if r.status_code != 200:
+        if r.status_code == 429:
+            raise Exception("Tumblr said limit exceeded (HTTP 429)")
+        raise Exception("Unknown status code {}".format(r.status_code))
+    s = r.content
+    if False:
+        with open('data_{:06d}.json'.format(idx), 'wb') as f:
+            f.write(s)
+    # Loads JSONP, so initial "var something = " and trailing ";" should be cut
+    # before decoding.
+    return json.loads(s[s.index(b'=')+1:s.rindex(b';')])
+
+
+def main(tumblr_name, start_from):
+    # API v1, getting JSONP
+    url = 'https://' + tumblr_name + '.tumblr.com/api/read/json?'
+
+    # Main loop.
+    start_time = datetime.now()
+    pos = start_from
+    total_posts = 999999
+    while pos < total_posts:
+        p = get_posts(url + 'num=50&start={}'.format(pos), pos)
+        total_posts = int(p['posts-total'])
+
+        cnt = 0
+        assert 'posts' in p
+        for post in p['posts']:
+            cnt += 1
+            if post['type'] == 'photo':
+                print(post['photo-url-1280'])
+                for photo in post['photos']:
+                    print(photo['photo-url-1280'])
+            elif post['type'] == 'video':
+                assert 'photo-url-1280' not in post
+                assert 'photos' not in post
+                try:
+                    soup = BeautifulSoup(post['video-player'], 'html.parser')
+                    print(soup.video.source['src'])
+                except Exception:
+                    pass
+            elif post['type'] == 'regular':
+                assert 'photo-url-1280' not in post
+                assert 'photos' not in post
+                try:
+                    soup = BeautifulSoup(post['regular-body'], 'html.parser')
+                    for img in soup.find_all('img'):
+                        print(img['src'])
+                except Exception:
+                    pass
+            elif post['type'] in ['audio', 'answer', 'link', 'quote', \
+                                  'conversation']:
+                assert 'photo-url-1280' not in post
+                assert 'photos' not in post
+            else:
+                raise Exception("Unknown post type {}".format(post['type']))
+
+        pos += cnt
+
+        now = datetime.now()
+        remaining_time = ((now - start_time) / max(pos - start_from, 1) *
+                          (total_posts - pos))
+        report = "{:6.2f}%".format(100.0 * pos / max(total_posts, 1))
+        report += " ({}/{})".format(pos, total_posts)
+        report += ", spent {}".format(now - start_time)
+        report += ", est {}".format(remaining_time)
+        report += " ({})".format(now + remaining_time)
+        report += "\n"
+        sys.stderr.write(report)
+
+        if cnt == 0:
+            sys.stderr.write("\nearly exit, post count on a page is 0\n")
+            break
+
+    sys.stderr.write("\n")
+
+
+if __name__ == '__main__':
+    tumblr_name = sys.argv[1]
+    start_from = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+    if start_from > 0:
+        sys.stderr.write("start_from = {}\n".format(start_from))
+    main(tumblr_name, start_from)

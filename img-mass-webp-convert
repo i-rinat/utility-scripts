@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Mass-convert images in the current directory to WebP format.
+
+towebp() {
+    if [ -f "${1%.*}.webp" ]; then
+        return
+    fi
+    if [ -f "${1%.*}.wtmp" ]; then
+        return
+    fi
+    if ! cwebp -q 90 -metadata all -quiet -o "${1%.*}.wtmp" -- "$1"; then
+        mkdir -p not
+        mv "$1" not/
+        return
+    fi
+    touch -r "$1" "${1%.*}.wtmp"
+    mv "${1%.*}.wtmp" "${1%.*}.webp"
+}
+
+export -f towebp
+
+time find . -maxdepth 1 -type f \( -iname '*.jpeg' -o -iname '*.jpg' -o -iname '*.png' \) | parallel -j4 --bar towebp {}

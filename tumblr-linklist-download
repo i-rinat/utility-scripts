@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+
+"""
+Downloads files from a list of tumblr images links. Resumes from
+where previous run stopped.
+"""
+
+
+from contextlib import suppress
+import fcntl
+import http.server
+import os
+import pathlib
+import random
+import requests
+import sys
+import time
+
+
+def get_urls(fname):
+    with open(fname) as f:
+        urls = [line.strip() for line in f.readlines()]
+
+    return urls
+
+
+def generate_header(resp):
+    try:
+        resp_info_dict = http.server.BaseHTTPRequestHandler.responses
+        descr = resp_info_dict[resp.status_code][0]
+    except KeyError:
+        descr = 'Unknown Code'
+
+    s = 'HTTP/1.1 {} {}\n'.format(resp.status_code, descr)
+
+    for key in resp.headers:
+        s += key + ': ' + resp.headers[key] + '\n'
+
+    return s + '\n'
+
+
+def msg(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+
+def main():
+    session = requests.Session()
+
+    for dname in ['errors', 'pic', 'gif', 'vid', 'other']:
+        with suppress(FileExistsError):
+            os.mkdir(dname)
+
+    sieve = {
+        '.jpg': 'pic',
+        '.jpeg': 'pic',
+        '.png': 'pic',
+        '.gif': 'gif',
+        '.mp4': 'vid',
+        '.mov': 'vid',
+    }
+
+    urls = get_urls(sys.argv[1])
+    urls = sorted(urls, key=lambda x: os.path.basename(x))
+
+    for idx, url in enumerate(urls):
+        basename = os.path.basename(url)
+        ext = pathlib.Path(basename.lower()).suffix
+        dest_dir = sieve.get(ext, 'other')
+        fname = os.path.join(dest_dir, basename)
+        errorname = os.path.join('errors', basename) + '.head'
+
+        if os.path.isfile(fname):
+            continue
+
+        if os.path.isfile(errorname):
+            continue
+
+        msg('{:6d}/{} {} '.format(idx + 1, len(urls), basename))
+
+        headers = {}
+        headers['User-Agent'] = \
+            'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 ' + \
+            'Firefox/78.0'
+        headers['Referer'] = url
+        headers['Accept'] = 'image/*'
+        headers['Accept-Language'] = 'en-US,en;q=0.5'
+        headers['Accept-Encoding'] = 'gzip, deflate'
+        headers['Cookie'] = 'palette=trueBlue'
+        headers['DNT'] = '1'
+
+        start_time = time.time()
+        resp = session.get(url, headers=headers, allow_redirects=False,
+                           stream=True)
+
+        if resp.status_code == 200:
+            file_len = 0
+            prev_msg_len = 0
+            with open('tmpfile', 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=128*1024):
+                    f.write(chunk)
+                    file_len += len(chunk)
+                    status_msg = '{:.1f} KiB'.format(file_len / 1024.0)
+                    msg('\b' * prev_msg_len + status_msg)
+                    prev_msg_len = len(status_msg)
+
+            os.rename('tmpfile', fname)
+            elapsed_time = max(1e-9, time.time() - start_time)
+            msg(' @ {:.1f} KiB/s'.format(file_len / 1024.0 / elapsed_time))
+        else:
+            with open('tmpfile', 'wb') as f:
+                f.write(generate_header(resp).encode('UTF-8'))
+            os.rename('tmpfile', errorname)
+
+        msg('\n')
+
+    print('All {} entries were handled.'.format(len(urls)))
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('Download files from a list of tumblr images/videos')
+        print()
+        print('Usage: {} <file-with-list-of-urls>')
+        sys.exit(2)
+
+    f = open('lock', 'a')
+    print('Trying to lock...')
+    fcntl.lockf(f, fcntl.LOCK_EX)
+    print('Obtained.')
+
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\nKeyboardInterrupt')
+    finally:
+        f.close()

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+while (($#)); do
+    cwebp -q 90 -metadata all -o "${1%.*}.webp" -- "$1"
+    shift
+done

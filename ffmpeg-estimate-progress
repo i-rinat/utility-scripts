@@ -1,0 +1,27 @@
+#!/bin/bash
+
+hreadable() {
+    local hr min
+    hr=$(echo "$1 / 3600" | bc)
+    min=$(echo "( $1 - $hr * 3600) / 60" | bc)
+    sec=$(echo "( $1 - $hr*3600 - $min*60)" | bc)
+    printf "%02d:%02d:%02d" $hr $min $sec
+}
+
+estimate() {
+    local pid curpos totalbytes elapsed eta
+    pid=$1
+    curpos=$(</proc/$pid/fdinfo/3 awk '/^pos:/{print$2}')
+    totalbytes=$(stat -L -c '%s' /proc/$pid/fd/3)
+    elapsed=$(echo $(ps -o etimes= -p $pid))
+    eta=$(echo "scale=0; $elapsed * $totalbytes / $curpos - $elapsed" | bc)
+    printf "%5s%% elapsed: %s eta: %s  %s\n"            \
+        $(echo "scale=1; 100*$curpos/$totalbytes" | bc) \
+        $(hreadable $elapsed)                           \
+        $(hreadable $eta)                               \
+        "$(readlink /proc/$pid/fd/3)"
+}
+
+for i in $(pgrep -f '^ffmpeg\s'); do
+    estimate $i
+done | sort -k6
