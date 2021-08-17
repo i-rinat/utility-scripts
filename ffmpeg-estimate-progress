@@ -9,17 +9,20 @@ hreadable() {
 }
 
 estimate() {
-    local pid curpos totalbytes elapsed eta
+    local pid curpos totalbytes elapsed eta pass
     pid=$1
     curpos=$(</proc/$pid/fdinfo/3 awk '/^pos:/{print$2}')
     totalbytes=$(stat -L -c '%s' /proc/$pid/fd/3)
     elapsed=$(echo $(ps -o etimes= -p $pid))
     eta=$(echo "scale=0; $elapsed * $totalbytes / $curpos - $elapsed" | bc)
-    printf "%5s%% elapsed: %s eta: %s  %s\n"            \
+    pass=$(tr '\0' ' ' < /proc/$pid/cmdline | grep -o 'pass [12]')
+    if [[ ! -z "$pass" ]]; then pass=" ($pass)"; fi
+    printf "%5s%% elapsed: %s eta: %s  %s%s\n"          \
         $(echo "scale=1; 100*$curpos/$totalbytes" | bc) \
         $(hreadable $elapsed)                           \
         $(hreadable $eta)                               \
-        "$(readlink /proc/$pid/fd/3)"
+        "$(readlink /proc/$pid/fd/3)"                   \
+        "$pass"
 }
 
 for i in $(pgrep -f '^ffmpeg\s'); do
