@@ -18,6 +18,8 @@ elif [[ $size -le 1080 ]]; then crf=31
 elif [[ $size -le 1440 ]]; then crf=24
 else crf=15; fi
 
+mkdir -p /tmp/vid2webm/ /tmp/vid2webm/done/
+
 ffmpeg -hide_banner -i "$1"                                \
     -max_muxing_queue_size 99999                           \
     ${color_range:+-color_range} $color_range              \
@@ -26,7 +28,7 @@ ffmpeg -hide_banner -i "$1"                                \
     ${color_transfer:+-color_trc} $color_transfer          \
     -c:v libvpx-vp9 -pass 1 -crf $crf -b:v 0               \
     -threads 8 -tile-columns 6 -frame-parallel 1 -speed 1  \
-    -passlogfile /tmp/vid2webm-passlog-$$                  \
+    -passlogfile /tmp/vid2webm/passlog-$$                  \
     -c:a libopus -b:a 96k                                  \
     -f webm -y /dev/null
 
@@ -39,8 +41,9 @@ ffmpeg -hide_banner -i "$1"                                \
     -c:v libvpx-vp9 -pass 2 -crf $crf -b:v 0 -speed 1      \
     -threads 8 -tile-columns 6 -frame-parallel 1           \
     -auto-alt-ref 1 -lag-in-frames 25                      \
-    -passlogfile /tmp/vid2webm-passlog-$$                  \
+    -passlogfile /tmp/vid2webm/passlog-$$                  \
     -c:a libopus -b:a 96k                                  \
     -f webm "$OUT"
 
 touch -r "$1" "$OUT"
+mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/
