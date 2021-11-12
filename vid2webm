@@ -6,7 +6,7 @@ frame_info=$(ffprobe -loglevel error -select_streams v:0 -show_frames "$1" | awk
 color_range=$(echo "$frame_info" | awk -F= '/^color_range=/{print$2;exit}')
 color_space=$(echo "$frame_info" | awk -F= '/^color_space=/{print$2;exit}')
 color_primaries=$(echo "$frame_info" | awk -F= '/^color_primaries=/{print$2;exit}')
-color_transfer=$(echo "$frame_info" | awk -F= '/^color_transfer=/{print$2;exit}' | sed 's/bt470bg/gamma28/')
+color_transfer=$(echo "$frame_info" | awk -F= '/^color_transfer=/{print$2;exit}' | sed 's/bt470bg/gamma28/;s/bt470m/gamma22/')
 height=$(echo "$frame_info" | awk -F= '/^height=/{print$2;exit}')
 width=$(echo "$frame_info" | awk -F= '/^width=/{print$2;exit}')
 size=$((height < width ? height : width))
