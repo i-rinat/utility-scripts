@@ -46,4 +46,4 @@ ffmpeg -hide_banner -i "$1"                                \
     -f webm "$OUT"
 
 touch -r "$1" "$OUT"
-mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/
+mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/ 2>/dev/null || true
