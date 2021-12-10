@@ -1,6 +1,6 @@
 #!/bin/sh
 
 while (($#)); do
-    cwebp -q 90 -metadata all -o "${1%.*}.webp" -- "$1"
+    cwebp -q 90 -m 6 -af -metadata all -o "${1%.*}.webp" -- "$1"
     shift
 done

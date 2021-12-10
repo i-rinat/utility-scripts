@@ -9,7 +9,7 @@ towebp() {
     if [ -f "${1%.*}.wtmp" ]; then
         return
     fi
-    if ! cwebp -q 90 -metadata all -quiet -o "${1%.*}.wtmp" -- "$1"; then
+    if ! cwebp -q 90 -m 6 -af -metadata all -quiet -o "${1%.*}.wtmp" -- "$1"; then
         mkdir -p not
         mv "$1" not/
         return
