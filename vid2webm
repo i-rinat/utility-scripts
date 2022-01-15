@@ -26,6 +26,7 @@ ffmpeg -hide_banner -i "$1"                                \
     ${color_space:+-colorspace} $color_space               \
     ${color_primaries:+-color_primaries} $color_primaries  \
     ${color_transfer:+-color_trc} $color_transfer          \
+    -pix_fmt yuv420p                                       \
     -c:v libvpx-vp9 -pass 1 -crf $crf -b:v 0               \
     -threads 8 -tile-columns 6 -frame-parallel 1 -speed 1  \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
@@ -38,6 +39,7 @@ ffmpeg -hide_banner -i "$1"                                \
     ${color_space:+-colorspace} $color_space               \
     ${color_primaries:+-color_primaries} $color_primaries  \
     ${color_transfer:+-color_trc} $color_transfer          \
+    -pix_fmt yuv420p                                       \
     -c:v libvpx-vp9 -pass 2 -crf $crf -b:v 0 -speed 1      \
     -threads 8 -tile-columns 6 -frame-parallel 1           \
     -auto-alt-ref 1 -lag-in-frames 25                      \
