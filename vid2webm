@@ -21,31 +21,35 @@ else crf=15; fi
 mkdir -p /tmp/vid2webm/ /tmp/vid2webm/done/
 
 ffmpeg -hide_banner -i "$1"                                \
+    ${VID2WEBM_OPT_1}                                      \
     -max_muxing_queue_size 99999                           \
     ${color_range:+-color_range} $color_range              \
     ${color_space:+-colorspace} $color_space               \
     ${color_primaries:+-color_primaries} $color_primaries  \
     ${color_transfer:+-color_trc} $color_transfer          \
     -pix_fmt yuv420p -enc_time_base -1                     \
+    ${VID2WEBM_OPT_2}                                      \
     -c:v libvpx-vp9 -pass 1 -crf $crf -b:v 0               \
     -threads 8 -tile-columns 6 -frame-parallel 1 -speed 1  \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
     -c:a libopus -b:a 96k                                  \
-    -f webm -y /dev/null
+    -f webm -y ${VID2WEBM_OPT_3} /dev/null
 
 ffmpeg -hide_banner -i "$1"                                \
+    ${VID2WEBM_OPT_1}                                      \
     -max_muxing_queue_size 99999                           \
     ${color_range:+-color_range} $color_range              \
     ${color_space:+-colorspace} $color_space               \
     ${color_primaries:+-color_primaries} $color_primaries  \
     ${color_transfer:+-color_trc} $color_transfer          \
     -pix_fmt yuv420p -enc_time_base -1                     \
+    ${VID2WEBM_OPT_2}                                      \
     -c:v libvpx-vp9 -pass 2 -crf $crf -b:v 0 -speed 1      \
     -threads 8 -tile-columns 6 -frame-parallel 1           \
     -auto-alt-ref 1 -lag-in-frames 25                      \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
     -c:a libopus -b:a 96k                                  \
-    -f webm "$OUT"
+    -f webm ${VID2WEBM_OPT_3} "$OUT"
 
 touch -r "$1" "$OUT"
 mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/ 2>/dev/null || true
