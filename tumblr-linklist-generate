@@ -32,6 +32,8 @@ def main(tumblr_name, start_from):
     # API v1, getting JSONP
     url = 'https://' + tumblr_name + '.tumblr.com/api/read/json?'
 
+    blogs_reblogged_from = set()
+
     # Main loop.
     start_time = datetime.now()
     pos = start_from
@@ -44,6 +46,11 @@ def main(tumblr_name, start_from):
         cnt = 0
         assert 'posts' in p
         for post in p['posts']:
+            if 'reblogged-from-name' in post:
+                blogs_reblogged_from.add(post['reblogged-from-name'])
+            if 'reblogged-root-name' in post:
+                blogs_reblogged_from.add(post['reblogged-root-name'])
+
             cnt += 1
             if post['type'] == 'photo':
                 print(post['photo-url-1280'])
@@ -91,6 +98,8 @@ def main(tumblr_name, start_from):
             break
 
     sys.stderr.write("\n")
+    sys.stderr.write(
+        'source blogs:\n' + '\n'.join(sorted(blogs_reblogged_from)) + '\n')
 
 
 if __name__ == '__main__':
