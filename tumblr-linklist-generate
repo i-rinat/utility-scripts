@@ -37,6 +37,7 @@ def main(tumblr_name, start_from):
     pos = start_from
     total_posts = 999999
     while pos < total_posts:
+        time.sleep(1)
         p = get_posts(url + 'num=50&start={}'.format(pos), pos)
         total_posts = int(p['posts-total'])
 
