@@ -12,6 +12,7 @@ towebp() {
     if ! cwebp -q 90 -m 6 -af -metadata icc -quiet -o "${1%.*}.wtmp" -- "$1"; then
         mkdir -p not
         mv "$1" not/
+        rm -f -- "${1%.*}.wtmp"
         return
     fi
     touch -r "$1" "${1%.*}.wtmp"
