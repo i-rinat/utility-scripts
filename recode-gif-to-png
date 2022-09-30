@@ -1,0 +1,44 @@
+#!/bin/bash
+
+check_tool() {
+    if ! command -v "$1" >/dev/null; then
+        echo >&2 "ERROR: can't find tool: $1$2"
+        exit 2
+    fi
+}
+
+check_tool identify " (ImageMagick)"
+check_tool convert  " (ImageMagick)"
+check_tool pngcrush
+check_tool pv
+
+TMPDIR="$(mktemp -d)"
+if [ -z $TMPDIR ]; then
+    echo >&2 "ERROR: 'mktemp -d' returned unexpected empty string"
+    exit 1
+fi
+
+while (($#)); do
+    FILETYPE=$(file -b --mime-type "$1")
+    if [ "x$FILETYPE" != "ximage/gif" ]; then
+        echo >&2 "skipped: $1 (not GIF)"
+        shift; continue;
+    fi
+    FRAMECOUNT=$(identify "$1" | wc -l)
+    if [ "x$FRAMECOUNT" != "x1" ]; then
+        echo >&2 "skipped: $1 (GIF with more than one frame)"
+        shift; continue;
+    fi
+
+    convert "$1" "$TMPDIR/$$.png" \
+    && pngcrush -v --brute "$TMPDIR/$$.png" "${1%.*}.png" 2>&1 \
+        | grep --line-buffered ' method ' \
+        | pv -lpet -s 177 -N "$1" > /dev/null \
+    && touch -r "$1" "${1%.*}.png" \
+    && rm "$TMPDIR/$$.png" \
+    && echo >&2 "converted: $1"
+
+    shift
+done
+
+rmdir "$TMPDIR"
