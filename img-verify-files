@@ -39,6 +39,9 @@ def verify_files(file_list):
         elif lc_fname.endswith('.gif'):
             r = subprocess.run(['gifsicle', fname], capture_output=True)
 
+        elif lc_fname.endswith('.webp'):
+            r = subprocess.run(['dwebp', '-pam', '-o', '/dev/null', fname], capture_output=True)
+
         elif any(lc_fname.endswith(x) for x in ['.txt', '.mp4', '.mov']):
             # Ignore.
             continue
