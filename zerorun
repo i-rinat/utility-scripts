@@ -1,0 +1,158 @@
+#!/usr/bin/env pypy3
+# -*- mode: python -*-
+
+import sys
+import textwrap
+
+
+def usage():
+    print(textwrap.dedent('''\
+    zerorun - detect sequences of zero bytes in a file.
+    Either returns an exit code for predicate statements, or prints results
+    to the standard output.
+
+    Examples:
+
+        zerorun filename.dat has zerorun longer than 4096
+        zerorun filename.dat starts with zerorun longer than 4096
+        zerorun filename.dat ends with zerorun longer than 4096
+        zerorun filename.dat print all zeroruns longer than 4096
+        zerorun filename.dat is all zeros
+    '''))
+
+
+class ShowUsage(Exception):
+    pass
+
+
+class UnexpectedCmd(Exception):
+    pass
+
+
+def get_nth(data, idx, default_value=None):
+    if type(idx) == int:
+        return data[idx] if idx < len(data) else default_value
+    elif type(idx) == list:
+        return [get_nth(data, k, default_value) for k in idx]
+
+
+def handle_verb_has(data, num):
+    largest_run = 0
+    current_run = 0
+    for b in data:
+        if b == 0:
+            current_run += 1
+        else:
+            largest_run = max(largest_run, current_run)
+            current_run = 0
+
+    largest_run = max(largest_run, current_run)
+    sys.exit(0) if largest_run > num else sys.exit(1)
+
+
+def handle_verb_starts_with(data, num):
+    current_run = 0
+    for b in data:
+        if b == 0:
+            current_run += 1
+        else:
+            break
+
+    sys.exit(0) if current_run > num else sys.exit(1)
+
+
+def handle_verb_ends_with(data, num):
+    current_run = 0
+    for b in reversed(data):
+        if b == 0:
+            current_run += 1
+        else:
+            break
+
+    sys.exit(0) if current_run > num else sys.exit(1)
+
+
+def handle_verb_print_all(data, num):
+    largest_run = 0
+    current_run = 0
+    current_run_offset = 0
+    for offset, b in enumerate(data):
+        if b == 0:
+            current_run += 1
+        else:
+            if current_run > num:
+                print('{}@{}'.format(current_run, current_run_offset))
+            largest_run = max(largest_run, current_run)
+            current_run = 0
+            current_run_offset = offset
+
+    if current_run > num:
+        print('{}@{}'.format(current_run, current_run_offset))
+    largest_run = max(largest_run, current_run)
+    print('')
+    print('largest zerorun: {}'.format(largest_run))
+
+
+def handle_verb_is_all_zeros(data):
+    current_run = 0
+    for b in data:
+        if b == 0:
+            current_run += 1
+        else:
+            break
+
+    sys.exit(0) if current_run == len(data) else sys.exit(1)
+
+
+def get_int_or_give_up(data, error=Exception):
+    try:
+        return int(data)
+    except ValueError:
+        raise error()
+
+
+def case_(entries):
+    indices = list(range(2, 2 + len(entries)))
+    return get_nth(sys.argv, indices) == entries
+
+
+def main():
+    if get_nth(sys.argv, 1) is None:
+        raise ShowUsage()
+
+    filename = sys.argv[1]
+    with open(filename, 'rb') as f:
+        data = f.read()
+
+    if case_(['has', 'zerorun', 'longer', 'than']):
+        num = get_int_or_give_up(get_nth(sys.argv, 6), UnexpectedCmd)
+        handle_verb_has(data=data, num=num)
+
+    elif case_(['starts', 'with', 'zerorun', 'longer', 'than']):
+        num = get_int_or_give_up(get_nth(sys.argv, 7), UnexpectedCmd)
+        handle_verb_starts_with(data=data, num=num)
+
+    elif case_(['ends', 'with', 'zerorun', 'longer', 'than']):
+        num = get_int_or_give_up(get_nth(sys.argv, 7), UnexpectedCmd)
+        handle_verb_ends_with(data=data, num=num)
+
+    elif case_(['print', 'all', 'zeroruns', 'longer', 'than']):
+        num = get_int_or_give_up(get_nth(sys.argv, 7), UnexpectedCmd)
+        handle_verb_print_all(data=data, num=num)
+
+    elif case_(['is', 'all', 'zeros']):
+        handle_verb_is_all_zeros(data=data)
+
+    else:
+        raise UnexpectedCmd()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except ShowUsage:
+        usage()
+        sys.exit(2)
+    except UnexpectedCmd:
+        print('unexpected cmd')
+        sys.exit(2)
