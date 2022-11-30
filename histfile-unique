@@ -7,14 +7,15 @@ import os
 def main():
     line_numbers = {}
     idx = 1
-    with open(os.path.expanduser('~/.bash_history')) as f:
+    with open(os.path.expanduser('~/.bash_history'), 'rb') as f:
         for raw_line in f.readlines():
             line = raw_line.strip()
             line_numbers[line] = idx
             idx += 1
 
     line_numbers = sorted(line_numbers.items(), key=lambda x: x[1])
-    print('\n'.join([x[0] for x in line_numbers]))
+    sys.stdout.buffer.write(b'\n'.join([x[0] for x in line_numbers]))
+    sys.stdout.buffer.write(b'\n')
 
 
 if __name__ == '__main__':
