@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# For some reason some of recoded to WebM videos play with distorted audio.
+# Audio itself not damaged, but there are issues with playing it correctly.
+# What helps is to change container from "webm" to "mp4" and then change
+# it back to "webm".
+#
+# This script will make "filename.webm-" files from each corresponding
+# "filename.webm" and place it near original "filename.webm".
+
+mkdir -p /tmp/vid-ungurgle-sound
+TMP4="/tmp/vid-ungurgle-sound/$$.mp4"
+
+while (($#)); do
+    ffmpeg -y -i "$1" -c copy "$TMP4" && \
+    ffmpeg -i "$TMP4" -c copy -f webm "$1"- && \
+    touch -r "$1" "$1"-
+    rm "$TMP4"
+    shift
+done
