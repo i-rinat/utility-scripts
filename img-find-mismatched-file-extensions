@@ -46,6 +46,7 @@ def recursive_walk(directory):
                        not m.startswith('ISO Media, MP4 Base Media') and \
                        not m.startswith('ISO Media, Apple iTunes Video') and \
                        not m.startswith('ISO Media, MPEG v4 system') and \
+                       not m.startswith('ISO Media, MPEG-4 (.MP4) for SonyPSP') and \
                        m != 'ISO Media':
                         not_mp4.append(fn)
 
