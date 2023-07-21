@@ -1,82 +1,124 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-Detect and report non-matching extensions. Not all, but some predefined.
-Uses libmagic's content sniffing to determine actual types.
-'''
+# Recursively walks sys.argv[1], for each file checks if file type determined
+# by libmagic (also used by "file" utility) corresponds to the file extension.
 
 import magic
+import multiprocessing
 import os
 import sys
-from progress.bar import Bar as ProgressBar
+import tqdm
 
-not_jpeg = []
-not_png = []
-not_gif = []
-not_mp4 = []
-not_webm = []
-not_gifv = []
-not_known = []
+# Number of files per batch.
+NFILES_IN_BATCH = 16
 
-def recursive_walk(directory):
-    for root, subdirs, files in os.walk(directory):
-        if len(files) > 0:
-            bar = ProgressBar(root, max=len(files))
-            for f in files:
-                bar.next()
-                fn = os.path.join(root, f)
-                m = magic.from_file(fn)
+bad_files = {
+    'jpeg': [],
+    'png':  [],
+    'webp': [],
+    'gif':  [],
+    'mp4':  [],
+    'webm': [],
+    'ts':   [],
+    'gifv': [],
+    'known': [],
+}
 
-                if fn.endswith('.jpg') or fn.endswith('.jpeg') or fn.endswith('.JPG'):
-                    if not m.startswith('JPEG image data'):
-                        not_jpeg.append(fn)
-
-                elif fn.endswith('.png') or fn.endswith('.PNG'):
-                    if not m.startswith('PNG image data'):
-                        not_png.append(fn)
-
-                elif fn.endswith('.gif'):
-                    if not m.startswith('GIF image data'):
-                        not_gif.append(fn)
-
-                elif fn.endswith('.mov') or fn.endswith('.mp4'):
-                    if not m.startswith('ISO Media, MP4 v2') and \
-                       not m.startswith('ISO Media, Apple QuickTime movie, Apple QuickTime') and \
-                       not m.startswith('ISO Media, MP4 Base Media') and \
-                       not m.startswith('ISO Media, Apple iTunes Video') and \
-                       not m.startswith('ISO Media, MPEG v4 system') and \
-                       not m.startswith('ISO Media, MPEG-4 (.MP4) for SonyPSP') and \
-                       m != 'ISO Media':
-                        not_mp4.append(fn)
-
-                elif fn.endswith('.webm'):
-                    if not m.startswith('WebM'):
-                        not_webm.append(fn)
-
-                elif fn.endswith('.gifv'):
-                    if not m.startswith('WebM') and \
-                       not m.startswith('ISO Media, MP4 Base Media'):
-                        not_gifv.append(fn)
-
-                else:
-                        not_known.append(fn)
-            bar.finish()
+magic_checker = magic.Magic()
 
 
-def write_result(title, result_filename, filelist):
-    print('{}{}'.format(title, len(filelist)))
-    if len(filelist) > 0:
-        with open(result_filename, 'w') as f:
-            f.write('\n'.join(filelist) + '\n')
+def check_file_extension(filename):
+    fn = filename.lower()
+    m = magic_checker.from_file(filename)
+
+    if fn.endswith('.jpg') or fn.endswith('.jpeg'):
+        if not m.startswith('JPEG image data'):
+            return ('jpeg', filename)
+        return None
+
+    if fn.endswith('.png') or fn.endswith('.PNG'):
+        if not m.startswith('PNG image data'):
+            return ('png', filename)
+        return None
+
+    if fn.endswith('.webp'):
+        if not m.startswith('RIFF (little-endian) data, Web/P image'):
+            return ('webp', filename)
+        return None
+
+    if fn.endswith('.gif'):
+        if not m.startswith('GIF image data'):
+            return ('gif', filename)
+        return None
+
+    if fn.endswith('.mov') or fn.endswith('.mp4'):
+        if not m.startswith('ISO Media, MP4 v2') and \
+           not m.startswith('ISO Media, Apple QuickTime movie, Apple QuickTime') and \
+           not m.startswith('ISO Media, MP4 Base Media') and \
+           not m.startswith('ISO Media, Apple iTunes Video') and \
+           not m.startswith('ISO Media, MPEG v4 system') and \
+           not m.startswith('ISO Media, MPEG-4 (.MP4) for SonyPSP') and \
+           m != 'ISO Media':
+            return ('mp4', filename)
+        return None
+
+    if fn.endswith('.webm'):
+        if not m.startswith('WebM'):
+            return ('webm', filename)
+        return None
+
+    if fn.endswith('.ts'):
+        if not m.startswith('MPEG transport stream data'):
+            return ('ts', filename)
+        return None
+
+    if fn.endswith('.gifv'):
+        if not m.startswith('WebM') and \
+           not m.startswith('ISO Media, MP4 Base Media'):
+            return ('gifv', filename)
+        return None
+
+    return ('known', filename)
 
 
-recursive_walk(sys.argv[1])
+def main():
+    filename_list = []
+    for root, subdirs, files in os.walk(sys.argv[1]):
+        if len(files) == 0:
+            continue
 
-write_result("not jpeg's:   ", 'not_jpeg.txt', not_jpeg)
-write_result("not png's:    ", 'not_png.txt', not_png)
-write_result("not gif's:    ", 'not_gif.txt', not_gif)
-write_result("not mp4's:    ", 'not_mp4.txt', not_mp4)
-write_result("not webm's:   ", 'not_webm.txt', not_webm)
-write_result("not gifv's:   ", 'not_gifv.txt', not_gifv)
-write_result("unknown type: ", 'not_known.txt', not_known)
+        for fname in files:
+            lc_fname = fname.lower()
+            full_fname = os.path.join(root, fname)
+            filename_list.append(full_fname)
+
+    pool = multiprocessing.Pool(os.cpu_count())
+    progress_bar = tqdm.tqdm(total=len(filename_list))
+    num_of_bad_files = 0
+
+    for res in pool.imap_unordered(check_file_extension, filename_list,
+                                   NFILES_IN_BATCH):
+        progress_bar.update(1)
+        if res is not None:
+            file_type, file_name = res
+            bad_files[file_type].append(file_name)
+            num_of_bad_files += 1
+            progress_bar.set_postfix(found_bad=num_of_bad_files)
+
+    progress_bar.close()
+
+    for file_type in bad_files:
+        filelist = bad_files[file_type]
+        print('{:12}{}'.format('not ' + file_type + ':', len(filelist)))
+        if len(filelist) > 0:
+            result_filename = 'not_' + file_type + '.txt'
+            with open(result_filename, 'w') as f:
+                f.write('\n'.join(filelist) + '\n')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\ncaught KeyboardInterrupt')
