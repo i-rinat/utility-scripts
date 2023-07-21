@@ -108,13 +108,19 @@ def main():
 
     progress_bar.close()
 
+    all_ok = True
     for file_type in bad_files:
         filelist = bad_files[file_type]
-        print('{:12}{}'.format('not ' + file_type + ':', len(filelist)))
         if len(filelist) > 0:
+            all_ok = False
+            print('{:12}{}'.format('not ' + file_type + ':', len(filelist)))
             result_filename = 'not_' + file_type + '.txt'
             with open(result_filename, 'w') as f:
                 f.write('\n'.join(filelist) + '\n')
+
+    if all_ok:
+        print()
+        print('All OK')
 
 
 if __name__ == '__main__':
