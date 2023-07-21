@@ -23,6 +23,7 @@ bad_files = {
     'ts':   [],
     'gifv': [],
     'known': [],
+    'magic': [],
 }
 
 magic_checker = magic.Magic()
@@ -30,7 +31,10 @@ magic_checker = magic.Magic()
 
 def check_file_extension(filename):
     fn = filename.lower()
-    m = magic_checker.from_file(filename)
+    try:
+        m = magic_checker.from_file(filename)
+    except magic.MagicException:
+        return ('magic', filename)
 
     if fn.endswith('.jpg') or fn.endswith('.jpeg'):
         if not m.startswith('JPEG image data'):
