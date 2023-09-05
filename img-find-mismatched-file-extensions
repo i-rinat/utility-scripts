@@ -4,6 +4,7 @@
 # Recursively walks sys.argv[1], for each file checks if file type determined
 # by libmagic (also used by "file" utility) corresponds to the file extension.
 
+from natsort import natsorted as naturalsorted
 import magic
 import multiprocessing
 import os
@@ -114,7 +115,7 @@ def main():
 
     all_ok = True
     for file_type in bad_files:
-        filelist = bad_files[file_type]
+        filelist = naturalsorted(bad_files[file_type])
         if len(filelist) > 0:
             all_ok = False
             print('{:12}{}'.format('not ' + file_type + ':', len(filelist)))
