@@ -10,7 +10,7 @@ import sys
 import tqdm
 
 BATCH_SIZE = 1
-PARALLEL = 8
+THREAD_COUNT = os.cpu_count()
 
 WorkerResult = namedtuple('WorkerResult',
                           ['bad_files', 'unknown_files'])
@@ -61,7 +61,7 @@ def process_directory(directory_name):
 
             file_list.append(full_fname)
 
-    p = multiprocessing.Pool(PARALLEL)
+    p = multiprocessing.Pool(THREAD_COUNT)
     progress_bar = tqdm.tqdm(total=len(file_list))
 
     results = []
