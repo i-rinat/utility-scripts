@@ -11,6 +11,9 @@ import os
 import sys
 import tqdm
 
+# Number of worker threads.
+THREAD_COUNT = os.cpu_count()
+
 # Number of files per batch.
 NFILES_IN_BATCH = 16
 
@@ -98,7 +101,7 @@ def main():
             full_fname = os.path.join(root, fname)
             filename_list.append(full_fname)
 
-    pool = multiprocessing.Pool(os.cpu_count())
+    pool = multiprocessing.Pool(THREAD_COUNT)
     progress_bar = tqdm.tqdm(total=len(filename_list))
     num_of_bad_files = 0
 
