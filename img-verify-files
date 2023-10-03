@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
+from natsort import natsorted as naturalsorted
 from pprint import pprint
 import multiprocessing
 import os
@@ -8,54 +9,44 @@ import subprocess
 import sys
 import tqdm
 
-CHUNK_BYTESIZE = 100 * 1024 * 1024
-CHUNK_FILECOUNT = 300
+BATCH_SIZE = 1
 PARALLEL = 8
 
 WorkerResult = namedtuple('WorkerResult',
-                          ['bad_files', 'unknown_files', 'task'])
+                          ['bad_files', 'unknown_files'])
 
 
-def verify_files(file_list):
+def verify_file(fname):
     bad_files = []
     unknown_files = []
 
-    # Put files into OS read cache first.
-    for fname in file_list:
-        with open(fname, 'rb') as f:
-            f.read()
+    lc_fname = fname.lower()
 
-    # Process files, hopefully cached.
-    for fname in file_list:
-        lc_fname = fname.lower()
-        known_file_type = True
+    if lc_fname.endswith('.jpg') or lc_fname.endswith('.jpeg'):
+        r = subprocess.run(['djpeg', '-fast', fname], capture_output=True)
 
-        if lc_fname.endswith('.jpg') or lc_fname.endswith('.jpeg'):
-            r = subprocess.run(['djpeg', '-fast', fname], capture_output=True)
+    elif lc_fname.endswith('.png'):
+        r = subprocess.run(['pngtopnm', fname], capture_output=True)
 
-        elif lc_fname.endswith('.png'):
-            r = subprocess.run(['pngtopnm', fname], capture_output=True)
+    elif lc_fname.endswith('.gif'):
+        r = subprocess.run(['gifsicle', fname], capture_output=True)
 
-        elif lc_fname.endswith('.gif'):
-            r = subprocess.run(['gifsicle', fname], capture_output=True)
+    elif lc_fname.endswith('.webp'):
+        r = subprocess.run(['dwebp', '-pam', '-o', '/dev/null', fname],
+                           capture_output=True)
+    elif any(lc_fname.endswith(x) for x in ['.txt', '.mp4', '.mov']):
+        # Ignore.
+        r = subprocess.run(['true'])
+    else:
+        print('unknown: {}'.format(fname))
+        unknown_files.append(fname)
+        r = subprocess.run(['true'])
 
-        elif lc_fname.endswith('.webp'):
-            r = subprocess.run(['dwebp', '-pam', '-o', '/dev/null', fname], capture_output=True)
+    if r.returncode != 0:
+        print('bad: {}'.format(fname))
+        bad_files.append(fname)
 
-        elif any(lc_fname.endswith(x) for x in ['.txt', '.mp4', '.mov']):
-            # Ignore.
-            continue
-        else:
-            print('unknown: {}'.format(fname))
-            unknown_files.append(fname)
-            continue
-
-        if r.returncode != 0:
-            print('bad: {}'.format(fname))
-            bad_files.append(fname)
-
-    return WorkerResult(bad_files=bad_files, unknown_files=unknown_files,
-                        task=file_list)
+    return WorkerResult(bad_files=bad_files, unknown_files=unknown_files)
 
 
 def process_directory(directory_name):
@@ -70,26 +61,13 @@ def process_directory(directory_name):
 
             file_list.append(full_fname)
 
-    total_files = len(file_list)
-    work_chunks = []
-    while len(file_list) > 0:
-        piece = []
-        piece_bytesize = 0
-
-        while (len(file_list) > 0 and len(piece) < CHUNK_FILECOUNT and
-               piece_bytesize < CHUNK_BYTESIZE):
-            fname = file_list.pop(0)
-            piece.append(fname)
-            piece_bytesize += os.path.getsize(fname)
-
-        work_chunks.append(piece)
-
     p = multiprocessing.Pool(PARALLEL)
-    progress_bar = tqdm.tqdm(total=total_files)
+    progress_bar = tqdm.tqdm(total=len(file_list))
 
     results = []
-    for idx, res in enumerate(p.imap_unordered(verify_files, work_chunks)):
-        progress_bar.update(len(res.task))
+    for idx, res in enumerate(p.imap_unordered(verify_file, file_list,
+                                               BATCH_SIZE)):
+        progress_bar.update(1)
         results.append(res)
 
     progress_bar.close()
@@ -108,10 +86,10 @@ def process_directory(directory_name):
               format(len(unknown_files)))
 
     with open('verify-report.txt', 'w') as f:
-        for fname in bad_files:
+        for fname in naturalsorted(bad_files):
             f.write('bad: {}\n'.format(fname))
 
-        for fname in unknown_files:
+        for fname in naturalsorted(unknown_files):
             f.write('unknown: {}\n'.format(fname))
 
     if len(bad_files) == 0 and len(unknown_files) == 0:
