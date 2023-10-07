@@ -22,6 +22,8 @@ def verify_file(fname):
 
     lc_fname = fname.lower()
 
+    ignored_types = ['.txt', '.mp4', '.mov', '.webm']
+
     if lc_fname.endswith('.jpg') or lc_fname.endswith('.jpeg'):
         r = subprocess.run(['djpeg', '-fast', fname], capture_output=True)
 
@@ -34,7 +36,7 @@ def verify_file(fname):
     elif lc_fname.endswith('.webp'):
         r = subprocess.run(['dwebp', '-pam', '-o', '/dev/null', fname],
                            capture_output=True)
-    elif any(lc_fname.endswith(x) for x in ['.txt', '.mp4', '.mov']):
+    elif any(lc_fname.endswith(x) for x in ignored_types):
         # Ignore.
         r = subprocess.run(['true'])
     else:
