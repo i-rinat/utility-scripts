@@ -1,0 +1,30 @@
+#!/bin/bash
+
+check_tool() {
+    if ! command -v "$1" >/dev/null; then
+        echo >&2 "ERROR: can't find tool: $1$2"
+        exit 2
+    fi
+}
+
+check_tool vid2webm
+check_tool file
+
+while (($#)); do
+    FILETYPE=$(file -b --mime-type "$1")
+
+    [ "x$FILETYPE" == "ximage/gif" ] && (
+        mkdir -p done || true
+        vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
+        shift; continue
+    )
+
+    [ "x$FILETYPE" == "xvideo/webm" ] && (
+        mkdir -p done || true
+        vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
+        shift; continue
+    )
+
+    echo >&2 "skipped: $1"
+    shift
+done
