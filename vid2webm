@@ -20,7 +20,7 @@ else crf=15; fi
 
 mkdir -p /tmp/vid2webm/ /tmp/vid2webm/done/
 
-ffmpeg -hide_banner -i "$1"                                \
+ffmpeg -nostdin -hide_banner -i "$1"                       \
     ${VID2WEBM_OPT_1}                                      \
     -max_muxing_queue_size 99999                           \
     ${color_range:+-color_range} $color_range              \
@@ -35,7 +35,7 @@ ffmpeg -hide_banner -i "$1"                                \
     -c:a libopus -b:a 96k                                  \
     -f webm -y ${VID2WEBM_OPT_3} /dev/null
 
-ffmpeg -hide_banner -i "$1"                                \
+ffmpeg -nostdin -hide_banner -i "$1"                       \
     ${VID2WEBM_OPT_1}                                      \
     -max_muxing_queue_size 99999                           \
     ${color_range:+-color_range} $color_range              \
