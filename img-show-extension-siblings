@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Lists files which have names that differ only by their extensions.
+# In other words, if we remove all extensions from names, will there be
+# files with duplicate names?
+
+# If there are files "file.jpg" and "file.png" in the same directory,
+# output will mention "file".
+
+# list all files, one per line
+find . -type f |
+# remove extensions (everything after the last dot)
+    rev | cut -f2- -d. | rev |
+# sort output, so similar names are grouped together
+    sort |
+# count duplicates
+    uniq -c |
+# remove all unique file names
+    grep -v '^      1 ' |
+# hide counts, keep only file names
+    cut -c9-
