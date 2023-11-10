@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Lists extensions of files alongside with number of files with such extensions.
+
+# Example output:
+#
+#    2354 webm
+#    3077 JPG
+#    4763 pdf
+#   25562 mp4
+#  112582 jpg
+#  135059 webp
+
+# Script doesn't properly support files without extensions. Whole name is
+# considered an extension. This was not specifically designed into, but
+# is left to make files without extentions to stand out.
+
+
+# list all files, one per line
+find . -type f |
+# split each line by dots, take last field, that's extensions
+    rev | cut -f1 -d. | rev |
+# sort lines so same extensions are now grouped
+    sort |
+# count extensions
+    uniq -c |
+# sort by numeric values, low to high
+    sort -n
