@@ -1,7 +1,7 @@
 #!/bin/bash
 
 while (($#)); do
-    ffmpeg -nostdin -i "$1" -c copy -f null - 2>&1 | tr '\r' '\n' | grep -oE 'frame=\s*[0-9]+' | tail -1 | tr -d ' \n'
-    echo " $1"
+    framecount=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$1")
+    printf "%6s  %s\n" "$framecount" "$1"
     shift
 done
