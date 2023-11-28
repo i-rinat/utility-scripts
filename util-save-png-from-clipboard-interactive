@@ -1,0 +1,6 @@
+#!/bin/sh
+
+filename=$(zenity --file-selection --save --filename="$(date +%s).png")
+
+xclip -selection CLIPBOARD -out -target image/png > "$filename" ||
+    zenity --error --text="failed to save image/png\n\nAvailable targets:\n$(xclip -selection CLIPBOARD -out -target TARGETS)"
