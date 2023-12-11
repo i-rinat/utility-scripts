@@ -13,17 +13,17 @@ check_tool file
 while (($#)); do
     FILETYPE=$(file -b --mime-type "$1")
 
-    [ "x$FILETYPE" == "ximage/gif" ] && (
+    if [[ "x$FILETYPE" == "ximage/gif" ]]; then
         mkdir -p done || true
         vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
         shift; continue
-    )
+    fi
 
-    [ "x$FILETYPE" == "xvideo/webm" ] && (
+    if [[ "x$FILETYPE" == "xvideo/webm" ]]; then
         mkdir -p done || true
         vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
         shift; continue
-    )
+    fi
 
     echo >&2 "skipped: $1"
     shift
