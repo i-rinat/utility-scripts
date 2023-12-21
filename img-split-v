@@ -61,7 +61,7 @@ def main(argv):
         dst_filename = basename + '-' + format_string.format(idx) + '.png'
         print('saving {} to {}'.format(crop_rect, dst_filename))
         im = src_image.crop(crop_rect)
-        im.save(dst_filename)
+        im.save(dst_filename, optimize=False, compress_level=1)
         del im
 
     return 0
