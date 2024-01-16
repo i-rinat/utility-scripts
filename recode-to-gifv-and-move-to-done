@@ -15,13 +15,13 @@ while (($#)); do
 
     if [[ "x$FILETYPE" == "ximage/gif" ]]; then
         mkdir -p done || true
-        vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
+        vid2webm "$1" "${1%.*}.gifv" && mv -i "$1" "${1%.*}.gifv" done/
         shift; continue
     fi
 
     if [[ "x$FILETYPE" == "xvideo/webm" ]]; then
         mkdir -p done || true
-        vid2webm "$1" "done/${1%.*}.gifv" && mv -i "$1" done/
+        vid2webm "$1" "${1%.*}.gifv" && mv -i "$1" "${1%.*}.gifv" done/
         shift; continue
     fi
 
