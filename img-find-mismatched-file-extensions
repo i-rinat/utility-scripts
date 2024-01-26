@@ -91,8 +91,12 @@ def check_file_extension(filename):
 
 
 def main():
+    directory_to_process = '.'
+    if len(sys.argv) > 1:
+        directory_to_process = sys.argv[1]
     filename_list = []
-    for root, subdirs, files in os.walk(sys.argv[1]):
+
+    for root, subdirs, files in os.walk(directory_to_process):
         if len(files) == 0:
             continue
 
