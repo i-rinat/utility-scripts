@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Recursively walks current directory and generates vid2webm re-encoding
+# commands for all "mp4" videos. Videos than do not fit entirely into 1920x1080
+# or 1080x1920, are scaled down proportionally to fit. Smaller videos keep
+# their resolution.
+
+
+import json
+import os
+import subprocess
+import multiprocessing
+
+# Number of worker threads.
+THREAD_COUNT = os.cpu_count()
+
+
+def downscaled_to_1080(w, h):
+    sz_min = min(w, h)
+    sz_max = max(w, h)
+    sz_min_ratio = sz_min / 1080
+    sz_max_ratio = sz_max / 1920
+    ratio = max(sz_min_ratio, sz_max_ratio)
+    if ratio > 1:
+        return (int(w / ratio), int(h / ratio))
+    else:
+        return None
+
+
+def create_vid2webm_cmd_line(fname):
+    escaped_fname = fname.replace('"', '\\"')
+    r = subprocess.run(['ffprobe', '-v', 'quiet', '-print_format', 'json',
+                        '-select_streams', 'v:0', '-show_streams', fname],
+                       capture_output=True)
+    j = json.loads(r.stdout)
+    w = j['streams'][0]['width']
+    h = j['streams'][0]['height']
+
+    new_sz = downscaled_to_1080(w, h)
+    if new_sz is not None:
+        w, h = new_sz
+        res = ('VID2WEBM_OPT_2="-vf scale={}x{}:flags=lanczos" '
+               'vid2webm "{}"').format(w, h, escaped_fname)
+    else:
+        res = 'vid2webm "{}"'.format(escaped_fname)
+
+    return res
+
+
+def main():
+    filename_list = []
+    for root, subdirs, files in os.walk('.'):
+        if len(files) == 0:
+            continue
+        for fname in files:
+            if fname.endswith('.mp4'):
+                full_fname = os.path.join(root, fname)
+                filename_list.append(full_fname)
+
+    pool = multiprocessing.Pool(THREAD_COUNT)
+    for res in pool.imap_unordered(create_vid2webm_cmd_line, filename_list, 1):
+        print(res)
+
+
+if __name__ == '__main__':
+    main()
