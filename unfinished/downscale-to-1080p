@@ -1,8 +1,0 @@
-def rescale(txt):
-    sz = [int(a) for a in txt.split("x")]
-    sz_min = min(sz)
-    sz_max = max(sz)
-    sz_min_ratio = sz_min / 1080
-    sz_max_ratio = sz_max / 1920
-    ratio = max(sz_min_ratio, sz_max_ratio)
-    print('VID2WEBM_OPT_2="-vf scale={}x{}:flags=lanczos" vid2webm "'.format(int(sz[0]/ratio), int(sz[1]/ratio)))
