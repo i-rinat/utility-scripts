@@ -99,7 +99,10 @@ def process_directory(directory_name):
 
 
 def main():
-    process_directory(sys.argv[1])
+    dirname = '.'
+    if len(sys.argv) > 1:
+        dirname = sys.argv[1]
+    process_directory(dirname)
 
 
 if __name__ == '__main__':
