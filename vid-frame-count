@@ -1,7 +1,7 @@
 #!/bin/bash
 
 while (($#)); do
-    framecount=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$1")
+    framecount=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$1" | tr -d ',')
     printf "%6s  %s\n" "$framecount" "$1"
     shift
 done
