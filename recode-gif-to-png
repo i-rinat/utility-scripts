@@ -23,22 +23,23 @@ if [ "x$1" = "x--" ]; then
 fi
 
 while (($#)); do
-    FILETYPE=$(file -b --mime-type "$1")
+    FILETYPE=$(file -b --mime-type -- "$1")
     if [ "x$FILETYPE" != "ximage/gif" ]; then
         echo >&2 "skipped: $1 (not GIF)"
         shift; continue;
     fi
-    FRAMECOUNT=$(identify "$1" | wc -l)
+    FRAMECOUNT=$(identify -- "$1" | wc -l)
     if [ "x$FRAMECOUNT" != "x1" ]; then
         echo >&2 "skipped: $1 (GIF with more than one frame)"
         shift; continue;
     fi
 
-    convert "$1" "$TMPDIR/$$.png" \
-    && pngcrush -v --brute "$TMPDIR/$$.png" "${1%.*}.png" 2>&1 \
+    convert -- "$1" "$TMPDIR/$$.png" \
+    && pngcrush -v --brute "$TMPDIR/$$.png" "$TMPDIR/$$-comp.png" 2>&1 \
         | grep --line-buffered ' method ' \
         | pv -lpet -s 177 -N "$1" > /dev/null \
-    && touch -r "$1" "${1%.*}.png" \
+    && touch -r "$1" "$TMPDIR/$$-comp.png" \
+    && mv -i -- "$TMPDIR/$$-comp.png" "${1%.*}.png" \
     && rm "$TMPDIR/$$.png" \
     && echo >&2 "converted: $1"
 
