@@ -11,6 +11,10 @@
 mkdir -p /tmp/vid-ungurgle-sound
 TMP4="/tmp/vid-ungurgle-sound/$$.mp4"
 
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
 while (($#)); do
     ffmpeg -nostdin -hide_banner -y -i "$1" -c copy "$TMP4" && \
     ffmpeg -nostdin -hide_banner -i "$TMP4" -c copy -f webm "$1"- && \

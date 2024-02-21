@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
 while (($#)); do
     cwebp -q 90 -m 6 -af -metadata icc -o "${1%.*}.webp" -- "$1"
     shift

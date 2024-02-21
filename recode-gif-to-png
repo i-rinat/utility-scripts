@@ -18,6 +18,10 @@ if [ -z $TMPDIR ]; then
     exit 1
 fi
 
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
 while (($#)); do
     FILETYPE=$(file -b --mime-type "$1")
     if [ "x$FILETYPE" != "ximage/gif" ]; then

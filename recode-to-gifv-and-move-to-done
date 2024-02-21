@@ -10,6 +10,10 @@ check_tool() {
 check_tool vid2webm
 check_tool file
 
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
 while (($#)); do
     FILETYPE=$(file -b --mime-type "$1")
 
