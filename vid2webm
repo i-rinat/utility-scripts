@@ -2,7 +2,7 @@
 
 if [[ -z "$2" ]]; then OUT="$1.webm"; else OUT="$2"; fi
 
-frame_info=$(ffprobe -loglevel error -select_streams v:0 -show_frames "$1" | awk '{print;if("[/FRAME]"==$0)exit;}' )
+frame_info=$(ffprobe -loglevel error -select_streams v:0 -show_frames -- "$1" | awk '{print;if("[/FRAME]"==$0)exit;}' )
 color_range=$(echo "$frame_info" | awk -F= '/^color_range=/{print$2;exit}')
 color_space=$(echo "$frame_info" | awk -F= '/^color_space=/{print$2;exit}')
 color_primaries=$(echo "$frame_info" | awk -F= '/^color_primaries=/{print$2;exit}')
@@ -49,7 +49,7 @@ ffmpeg -nostdin -hide_banner -i "$1"                       \
     -auto-alt-ref 1 -lag-in-frames 25                      \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
     -c:a libopus -b:a 96k                                  \
-    -f webm ${VID2WEBM_OPT_3} "$OUT"
+    -f webm ${VID2WEBM_OPT_3} -- "$OUT"
 
-touch -r "$1" "$OUT"
+touch -r "$1" -- "$OUT"
 mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/ 2>/dev/null || true
