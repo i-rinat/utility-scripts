@@ -15,17 +15,17 @@ if [ "x$1" = "x--" ]; then
 fi
 
 while (($#)); do
-    FILETYPE=$(file -b --mime-type "$1")
+    FILETYPE=$(file -b --mime-type -- "$1")
 
     if [[ "x$FILETYPE" == "ximage/gif" ]]; then
         mkdir -p done || true
-        vid2webm "$1" "${1%.*}.gifv" && mv -i "$1" "${1%.*}.gifv" done/
+        vid2webm "$1" "${1%.*}.gifv" && mv -i -- "$1" "${1%.*}.gifv" done/
         shift; continue
     fi
 
     if [[ "x$FILETYPE" == "xvideo/webm" ]]; then
         mkdir -p done || true
-        vid2webm "$1" "${1%.*}.gifv" && mv -i "$1" "${1%.*}.gifv" done/
+        vid2webm "$1" "${1%.*}.gifv" && mv -i -- "$1" "${1%.*}.gifv" done/
         shift; continue
     fi
 
