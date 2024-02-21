@@ -17,8 +17,8 @@ fi
 
 while (($#)); do
     ffmpeg -nostdin -hide_banner -y -i "$1" -c copy "$TMP4" && \
-    ffmpeg -nostdin -hide_banner -i "$TMP4" -c copy -f webm "$1"- && \
-    touch -r "$1" "$1"-
+    ffmpeg -nostdin -hide_banner -i "$TMP4" -c copy -f webm -- "$1"- && \
+    touch -r "$1" -- "$1"-
     rm "$TMP4"
     shift
 done
