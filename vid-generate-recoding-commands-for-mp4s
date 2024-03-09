@@ -34,8 +34,15 @@ def create_vid2webm_cmd_line(fname):
                         '-select_streams', 'v:0', '-show_streams', fname],
                        capture_output=True)
     j = json.loads(r.stdout)
-    w = j['streams'][0]['width']
-    h = j['streams'][0]['height']
+    stream = j['streams'][0]
+    w = stream['width']
+    h = stream['height']
+
+    if 'side_data_list' in stream:
+        if 'rotation' in stream['side_data_list'][0]:
+            rotation = int(stream['side_data_list'][0]['rotation'])
+            if abs(rotation) == 90 or abs(rotation) == 270:
+                w, h = h, w
 
     new_sz = downscaled_to_1080(w, h)
     if new_sz is not None:
