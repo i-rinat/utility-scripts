@@ -14,6 +14,8 @@ height=$(echo "$frame_info" | awk -F= '/^height=/{print$2;exit}')
 width=$(echo "$frame_info" | awk -F= '/^width=/{print$2;exit}')
 size=$((height < width ? height : width))
 
+# ' (<-- this is a syntax highlight workaround for mcedit)
+
 if [[ $size -le 360 ]]; then    crf=35
 elif [[ $size -le 480 ]]; then  crf=34
 elif [[ $size -le 720 ]]; then  crf=32
