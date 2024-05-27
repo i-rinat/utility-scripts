@@ -23,7 +23,7 @@ def downscaled_to_1080(w, h):
     sz_max_ratio = sz_max / 1920
     ratio = max(sz_min_ratio, sz_max_ratio)
     if ratio > 1:
-        return (int(w / ratio), int(h / ratio))
+        return (round(w / ratio), round(h / ratio))
     else:
         return None
 
