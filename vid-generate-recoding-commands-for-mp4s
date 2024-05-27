@@ -39,10 +39,14 @@ def create_vid2webm_cmd_line(fname):
     h = stream['height']
 
     if 'side_data_list' in stream:
-        if 'rotation' in stream['side_data_list'][0]:
-            rotation = int(stream['side_data_list'][0]['rotation'])
-            if abs(rotation) == 90 or abs(rotation) == 270:
-                w, h = h, w
+        swap_w_h = False
+        for sdl_entry in stream['side_data_list']:
+            if 'rotation' in sdl_entry:
+                rotation = int(sdl_entry['rotation'])
+                if abs(rotation) in [90, 270]:
+                    swap_w_h = True
+        if swap_w_h:
+            w, h = h, w
 
     new_sz = downscaled_to_1080(w, h)
     if new_sz is not None:
