@@ -1,0 +1,11 @@
+#!/bin/bash
+
+find . -name '*.png' | while read i; do
+    efn=$(printf "%q" "$i")
+    echo "(pnginfo $efn || echo \"pnginfo failed on: \"$efn > log.\$\$ ) | grep parameters > $efn.parameters || true"
+done
+
+find . -name '*.jpg' | while read i; do
+    efn=$(printf "%q" "$i")
+    echo "(exiftool -usercomment -comment $efn || echo \"exiftool failed on: \"$efn >> log.\$\$ ) > $efn.parameters || true"
+done
