@@ -1,0 +1,53 @@
+#!/bin/sh
+
+compare_framecount() {
+    fname_1="$1"
+    fname_2="$2"
+    combined_name="$3"
+
+    # Calculate frame counts.
+    count_1=$(vid-frame-count "$fname_1" | cut -c1-6)
+    count_1=$(echo $count_1)   # Removing spaces.
+    count_2=$(vid-frame-count "$fname_2" | cut -c1-6)
+    count_2=$(echo $count_2)   # Removing spaces.
+
+    # Calculate frame count difference.
+    diff=$(($count_1-$count_2))
+    # Removing leading "-" is effectively calculating abs().
+    diff=${diff#-}
+
+    # Approximate difference in percents.
+    diffpct=$(( 200 * $diff / ($count_1 + $count_2)  ))
+
+    if [ $diff -eq 0 ]; then
+        # Good is when there are no differences.
+        status=$(/bin/printf "[\x1b[1;32mgood\x1b[0m]")
+    elif [ $diff -le 1 -o $diffpct -le 3 ]; then
+        # One frame difference or less than (or equal) 3% difference.
+        status=$(/bin/printf "[\x1b[1;33mokay\x1b[0m]")
+    elif [ true ]; then
+        # Otherwise is very suspicious.
+        status=$(/bin/printf "[\x1b[1;31mbad_\x1b[0m]")
+    fi
+
+    status=$(printf "%s diff %d   %d/%d" "$status" "$diff" "$count_1" "$count_2")
+    printf "%-45s %s\n" "$status" "$combined_name"
+}
+
+find . -maxdepth 1 -name '*.gifv' | LANG=C sort | while read fname_2; do
+    fname_1="${fname_2%.*}.gif"
+    if [ ! -f "$fname_1" ]; then
+        continue
+    fi
+    combined_name="${fname_2%.*}.{gif/gifv}"
+    compare_framecount "$fname_1" "$fname_2" "$combined_name"
+done
+
+find . -maxdepth 1 -name '*.webm' | LANG=C sort | while read fname_2; do
+    fname_1="${fname_2%.*}"
+    if [ ! -f "$fname_1" ]; then
+        continue
+    fi
+    combined_name="${fname_2%.*}{./.webm}"
+    compare_framecount "$fname_1" "$fname_2" "$combined_name"
+done
