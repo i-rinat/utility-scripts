@@ -48,6 +48,6 @@ find . -maxdepth 1 -name '*.webm' | LANG=C sort | while read fname_2; do
     if [ ! -f "$fname_1" ]; then
         continue
     fi
-    combined_name="${fname_2%.*}{./.webm}"
+    combined_name="${fname_2%.*}{/.webm}"
     compare_framecount "$fname_1" "$fname_2" "$combined_name"
 done
