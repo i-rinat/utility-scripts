@@ -30,7 +30,7 @@ compare_framecount() {
         status=$(/bin/printf "[\x1b[1;31mbad_\x1b[0m]")
     fi
 
-    status=$(printf "%s diff %d   %d/%d" "$status" "$diff" "$count_1" "$count_2")
+    status=$(printf "%s diff %-3d %d/%d" "$status" "$diff" "$count_1" "$count_2")
     printf "%-45s %s\n" "$status" "$combined_name"
 }
 
