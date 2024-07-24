@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ "x$1" = "x" ]; then
+    echo "$0: missing image 1" >&2
+    exit 2
+fi
+
+if [ "x$2" = "x" ]; then
+    echo "$0: missing image 2" >&2
+    exit 2
+fi
+
+mkdir -p /tmp/img-visual-compare/
+
+convert "$1" "$2" -compose difference -composite -define png:compression-level=1 /tmp/img-visual-compare/$$.png
+feh /tmp/img-visual-compare/$$.png
+rm /tmp/img-visual-compare/$$.png
