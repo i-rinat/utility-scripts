@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Combines two SRT subtitles from two speakers into a single ASS subtitle file.
+# Speakers are color-coded.
+
+# pylint: disable=C0114,C0116
+
+import os
+import pathlib
+import sys
+
+from pysubs2 import SSAStyle, Color
+import pysubs2
+
+
+def combine_subs(video_filename):
+    base = os.path.splitext(video_filename)[0]
+    s1 = pysubs2.load(base + '.audio1.srt')
+    s2 = pysubs2.load(base + '.audio2.srt')
+
+    s3 = pysubs2.SSAFile()
+    s3.styles = {
+        'speaker1': SSAStyle(primarycolor=Color(255, 128, 128)),
+        'speaker2': SSAStyle(primarycolor=Color(128, 128, 255)),
+    }
+
+    for line in s1:
+        line.style = 'speaker1'
+        s3.append(line)
+
+    for line in s2:
+        line.style = 'speaker2'
+        s3.append(line)
+
+    s3.sort()
+
+    out_filename = f'{base}.ass'
+    if pathlib.Path(out_filename).is_file():
+        print(f'file "{out_filename}" exists, ignored')
+        return
+
+    s3.save(f'{base}.ass')
+
+
+def main():
+    for filename in sys.argv[1:]:
+        print(f'processing "{filename}"')
+        combine_subs(filename)
+
+
+if __name__ == '__main__':
+    main()
