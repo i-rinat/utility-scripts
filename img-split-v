@@ -10,6 +10,10 @@ import os
 import math
 
 
+# Some images are too large and trigger internal sanity checks in PIL.
+Image.MAX_IMAGE_PIXELS = 1_000_000_000
+
+
 def show_usage():
     print('Splits image into vertically stacked slices.')
     print('Usage: img-split-v <input-image> '
