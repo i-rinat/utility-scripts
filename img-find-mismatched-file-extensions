@@ -8,11 +8,14 @@ from natsort import natsorted as naturalsorted
 import magic
 import multiprocessing
 import os
+import shutil
+import subprocess
 import sys
 import tqdm
 
 # Number of worker threads.
 THREAD_COUNT = os.cpu_count()
+PRECACHE_CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
 # Number of files per batch.
 NFILES_IN_BATCH = 16
@@ -90,11 +93,38 @@ def check_file_extension(filename):
     return ('known', filename)
 
 
+def split_filelist_into_chunks(file_list):
+    file_list_chunks = []
+    current_chunk = []
+    current_chunk_bytesize = 0
+    for fn in file_list:
+        file_size = os.path.getsize(fn)
+        limit_exceeded = \
+            current_chunk_bytesize + file_size > PRECACHE_CHUNK_SIZE
+        if limit_exceeded and len(current_chunk) > 0:
+            file_list_chunks.append(current_chunk)
+            current_chunk = []
+            current_chunk_bytesize = 0
+
+        current_chunk.append(fn)
+        current_chunk_bytesize += file_size
+
+    if len(current_chunk) > 0:
+        file_list_chunks.append(current_chunk)
+        current_chunk = []
+        current_chunk_bytesize = 0
+
+    assert sum(len(c) for c in file_list_chunks) == len(file_list)
+    assert [entry for chunk in file_list_chunks for entry in chunk] == file_list
+
+    return file_list_chunks
+
+
 def main():
     directory_to_process = '.'
     if len(sys.argv) > 1:
         directory_to_process = sys.argv[1]
-    filename_list = []
+    file_list = []
 
     for root, subdirs, files in os.walk(directory_to_process):
         if len(files) == 0:
@@ -103,20 +133,29 @@ def main():
         for fname in files:
             lc_fname = fname.lower()
             full_fname = os.path.join(root, fname)
-            filename_list.append(full_fname)
+            file_list.append(full_fname)
 
     pool = multiprocessing.Pool(THREAD_COUNT)
-    progress_bar = tqdm.tqdm(total=len(filename_list))
+    progress_bar = tqdm.tqdm(total=len(file_list))
     num_of_bad_files = 0
 
-    for res in pool.imap_unordered(check_file_extension, filename_list,
-                                   NFILES_IN_BATCH):
-        progress_bar.update(1)
-        if res is not None:
-            file_type, file_name = res
-            bad_files[file_type].append(file_name)
-            num_of_bad_files += 1
-            progress_bar.set_postfix(found_bad=num_of_bad_files)
+    file_list_chunks = split_filelist_into_chunks(file_list)
+
+    for chunk in file_list_chunks:
+        precache_cmd = shutil.which('precache')
+        if precache_cmd is not None:
+            print('precaching chunk')
+            precache_task = ''.join(entry + '\n' for entry in chunk)
+            subprocess.run([precache_cmd], input=precache_task.encode('utf-8'))
+
+        for res in pool.imap_unordered(check_file_extension, chunk,
+                                       NFILES_IN_BATCH):
+            progress_bar.update(1)
+            if res is not None:
+                file_type, file_name = res
+                bad_files[file_type].append(file_name)
+                num_of_bad_files += 1
+                progress_bar.set_postfix(found_bad=num_of_bad_files)
 
     progress_bar.close()
 
