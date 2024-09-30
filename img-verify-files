@@ -5,12 +5,14 @@ from natsort import natsorted as naturalsorted
 from pprint import pprint
 import multiprocessing
 import os
+import shutil
 import subprocess
 import sys
 import tqdm
 
 BATCH_SIZE = 1
 THREAD_COUNT = os.cpu_count()
+PRECACHE_CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
 WorkerResult = namedtuple('WorkerResult',
                           ['bad_files', 'unknown_files'])
@@ -51,6 +53,33 @@ def verify_file(fname):
     return WorkerResult(bad_files=bad_files, unknown_files=unknown_files)
 
 
+def split_filelist_into_chunks(file_list):
+    file_list_chunks = []
+    current_chunk = []
+    current_chunk_bytesize = 0
+    for fn in file_list:
+        file_size = os.path.getsize(fn)
+        limit_exceeded = \
+            current_chunk_bytesize + file_size > PRECACHE_CHUNK_SIZE
+        if limit_exceeded and len(current_chunk) > 0:
+            file_list_chunks.append(current_chunk)
+            current_chunk = []
+            current_chunk_bytesize = 0
+
+        current_chunk.append(fn)
+        current_chunk_bytesize += file_size
+
+    if len(current_chunk) > 0:
+        file_list_chunks.append(current_chunk)
+        current_chunk = []
+        current_chunk_bytesize = 0
+
+    assert sum(len(c) for c in file_list_chunks) == len(file_list)
+    assert [entry for chunk in file_list_chunks for entry in chunk] == file_list
+
+    return file_list_chunks
+
+
 def process_directory(directory_name):
     file_list = []
     for root, subdirs, files in os.walk(directory_name):
@@ -67,10 +96,19 @@ def process_directory(directory_name):
     progress_bar = tqdm.tqdm(total=len(file_list))
 
     results = []
-    for idx, res in enumerate(p.imap_unordered(verify_file, file_list,
-                                               BATCH_SIZE)):
-        progress_bar.update(1)
-        results.append(res)
+    file_list_chunks = split_filelist_into_chunks(file_list)
+
+    for chunk in file_list_chunks:
+        precache_cmd = shutil.which('precache')
+        if precache_cmd is not None:
+            print('precaching chunk')
+            precache_task = ''.join(entry + '\n' for entry in chunk)
+            subprocess.run([precache_cmd], input=precache_task.encode('utf-8'))
+
+        for idx, res in enumerate(p.imap_unordered(verify_file, chunk,
+                                                   BATCH_SIZE)):
+            progress_bar.update(1)
+            results.append(res)
 
     progress_bar.close()
 
