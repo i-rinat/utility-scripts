@@ -1,0 +1,23 @@
+#!/bin/sh
+
+process_file()
+{
+    infname=$(realpath -- "$1")
+    for idx in $(ffprobe -v quiet -output_format json -select_streams a -show_streams "$infname" | jq .streams[].index | sort -n); do
+        outfname="${infname%.*}.audio$idx.mka"
+        if [ -f "$outfname" ]; then
+            echo "ERROR: \"$outfname\" already exists." >&2
+            exit 1
+        fi
+        ffmpeg -i "$infname" -vn -c:a copy -map 0:$idx "$outfname"
+    done
+}
+
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
+while [ $# -gt 0 ]; do
+    process_file "$1"
+    shift
+done
