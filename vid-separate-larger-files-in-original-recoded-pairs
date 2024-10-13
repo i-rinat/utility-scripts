@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Iterates over recoded ".webm" files in a directory (uses current if none
+# specified), finds if there is a corresponding original file which name is
+# determined by cutting ".webm" from the recoded file name. For example,
+# if there are files "f1.mp4.webm" and "f1.mp4" in the directory, they are
+# a pair of the recoded and original files. Files named "f2.mp4" and
+# "f2.webm" are not considered a pair.
+#
+# Within each pair the smaller file is kept in the working directory, while
+# the larger one is moved into "larger/" subdirectory, which is created if
+# needed. If the recoded file is being moved and the original file stays,
+# the original is additionally renamed by appending ".not-a.webm" to its
+# name.
+
+# pylint: disable=C0114,C0115,C0116
+
+import os
+import shutil
+import sys
+
+class WayOut(Exception):
+    pass
+
+def main():
+    current_dir = '.'
+    if len(sys.argv) > 1:
+        current_dir = sys.argv[1]
+
+    for entry in sorted(os.listdir(current_dir)):
+        recoded_fname = os.path.join(current_dir, entry)
+        if not recoded_fname.endswith('.webm'):
+            continue
+
+        orig_fname = os.path.join(current_dir, entry[:-len('.webm')])
+        if not os.path.isfile(orig_fname):
+            continue
+
+        recoded_fsize = os.path.getsize(recoded_fname)
+        orig_fsize = os.path.getsize(orig_fname)
+
+        print(f'{orig_fname}{{/.webm}} :: ', end='')
+
+        if recoded_fsize <= orig_fsize:
+            print('keeping recoded')
+            os.makedirs(os.path.join(current_dir, 'larger'), exist_ok=True)
+
+            # Move original file to a folder named "larger".
+            new_fname = os.path.join(current_dir, 'larger', orig_fname)
+            if os.path.exists(new_fname):
+                raise WayOut(f'Refusing to overwrite {new_fname}')
+            shutil.move(orig_fname, new_fname)
+
+        else:
+            print('keeping original')
+            os.makedirs(os.path.join(current_dir, 'larger'), exist_ok=True)
+
+            # Move recoded file to a folder named "larger".
+            new_fname = os.path.join(current_dir, 'larger', recoded_fname)
+            if os.path.exists(new_fname):
+                raise WayOut(f'Refusing to overwrite {new_fname}')
+            shutil.move(recoded_fname, new_fname)
+
+            # Rename original file by appending ".not-a.webm".
+            new_fname = orig_fname + '.not-a.webm'
+            if os.path.exists(new_fname):
+                raise WayOut(f'Refusing to overwrite {new_fname}')
+            shutil.move(orig_fname, new_fname)
+
+
+if __name__ == '__main__':
+    main()
