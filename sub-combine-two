@@ -16,8 +16,8 @@ import pysubs2
 
 def combine_subs(video_filename):
     base = os.path.splitext(video_filename)[0]
-    s1 = pysubs2.load(base + '.audio1.srt')
-    s2 = pysubs2.load(base + '.audio2.srt')
+    s1 = pysubs2.load(base + '.audio1.srt', format_='srt')
+    s2 = pysubs2.load(base + '.audio2.srt', format_='srt')
 
     s3 = pysubs2.SSAFile()
     s3.styles = {
