@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+'''
+    Split image into horizontally stacked slices.
+    You select how many resulting images there should be, and the utility
+    tries to find where to cut the source image. Places for cuts are determined
+    by sharp changes between neighboring lines.
+'''
+
+import sys
+from PIL import Image, ImageOps
+import numpy as np
+import os
+import math
+
+
+# Some images are too large and trigger internal sanity checks in PIL.
+Image.MAX_IMAGE_PIXELS = 1_000_000_000
+
+
+def show_usage():
+    print('Splits image into horizontally stacked slices.')
+    print('Usage: img-split-h-adaptive <input-image> <number-of-slices>')
+
+
+def main(argv):
+    if len(argv) <= 2:
+        show_usage()
+        return 2
+
+    src_image_filename = sys.argv[1]
+    src_image = Image.open(src_image_filename)
+    print('Source image is {}x{}.'.format(src_image.width,
+                                          src_image.height))
+    number_of_slices = int(sys.argv[2])
+    if number_of_slices < 2:
+        print('There should be at least two slices. ' +
+              'Otherwise no slicing is needed')
+
+    # Estimate how much a row differs from its neighbor above.
+    gs_image = ImageOps.grayscale(src_image)
+    a = np.asarray(gs_image).astype(np.int16)
+    del gs_image
+    b = abs(np.diff(a, n=1, axis=1))
+    del a
+    diffs = np.sum(b, axis=(0))
+    del b
+
+    # Select where to cut the image to make exactly `number_of_slices` slices.
+    # Positions are selected by sudden spikes in differences between lines.
+    sorted_diffs = sorted(enumerate(diffs), key=lambda x: -x[1])
+    marks = sorted(m[0] for m in sorted_diffs[:(number_of_slices - 1)])
+    marks = [0] + [(m + 1) for m in marks] + [src_image.width]
+    del diffs, sorted_diffs
+
+    # Actually save slice of the image.
+    basename = os.path.splitext(src_image_filename)[0]
+    number_of_digits = max(2, int(math.log10(len(marks)) + 1))
+    format_string = '{:0' + str(number_of_digits) + 'd}'
+    for idx in range(1, len(marks)):
+        crop_rect = (marks[idx - 1], 0, marks[idx], src_image.height)
+        dst_filename = basename + '-' + format_string.format(idx) + '.png'
+        print('saving {} to {}'.format(crop_rect, dst_filename))
+        im = src_image.crop(crop_rect)
+        im.save(dst_filename, optimize=False, compress_level=1)
+        del im
+
+    return 0
+
+
+if __name__ == '__main__':
+    main(sys.argv)
