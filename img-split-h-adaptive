@@ -7,11 +7,12 @@
     by sharp changes between neighboring lines.
 '''
 
-import sys
 from PIL import Image, ImageOps
+import math
 import numpy as np
 import os
-import math
+import scipy
+import sys
 
 
 # Some images are too large and trigger internal sanity checks in PIL.
@@ -45,6 +46,10 @@ def main(argv):
     del a
     diffs = np.sum(b, axis=(0))
     del b
+
+    # Median filter reveals overal trend in data. Subtracting it from the data
+    # itself reveals spikes.
+    diffs = abs(diffs - scipy.signal.medfilt(diffs, 5))
 
     # Select where to cut the image to make exactly `number_of_slices` slices.
     # Positions are selected by sudden spikes in differences between lines.
