@@ -10,8 +10,4 @@ if [ "x$2" = "x" ]; then
     exit 2
 fi
 
-mkdir -p /tmp/img-visual-compare/
-
-convert "$1" "$2" -compose difference -composite -auto-level -define png:compression-level=1 /tmp/img-visual-compare/$$.png
-feh /tmp/img-visual-compare/$$.png
-rm /tmp/img-visual-compare/$$.png
+convert "$1" "$2" -compose difference -composite -auto-level PPM:- | feh -
