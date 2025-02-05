@@ -20,6 +20,8 @@ import os
 import shutil
 import sys
 
+LARGER_DIR = 'larger-vid'
+
 class WayOut(Exception):
     pass
 
@@ -44,20 +46,20 @@ def main():
 
         if recoded_fsize <= orig_fsize:
             print('keeping recoded')
-            os.makedirs(os.path.join(current_dir, 'larger'), exist_ok=True)
+            os.makedirs(os.path.join(current_dir, LARGER_DIR), exist_ok=True)
 
-            # Move original file to a folder named "larger".
-            new_fname = os.path.join(current_dir, 'larger', orig_fname)
+            # Move original file to a folder for larger files.
+            new_fname = os.path.join(current_dir, LARGER_DIR, orig_fname)
             if os.path.exists(new_fname):
                 raise WayOut(f'Refusing to overwrite {new_fname}')
             shutil.move(orig_fname, new_fname)
 
         else:
             print('keeping original')
-            os.makedirs(os.path.join(current_dir, 'larger'), exist_ok=True)
+            os.makedirs(os.path.join(current_dir, LARGER_DIR), exist_ok=True)
 
-            # Move recoded file to a folder named "larger".
-            new_fname = os.path.join(current_dir, 'larger', recoded_fname)
+            # Move recoded file to a folder for larger files.
+            new_fname = os.path.join(current_dir, LARGER_DIR, recoded_fname)
             if os.path.exists(new_fname):
                 raise WayOut(f'Refusing to overwrite {new_fname}')
             shutil.move(recoded_fname, new_fname)
