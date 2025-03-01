@@ -53,7 +53,7 @@ ffmpeg -nostdin -hide_banner -i "$1"                       \
     -threads 1 -tile-columns 1 -frame-parallel 1           \
     -auto-alt-ref 1 -lag-in-frames 25                      \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
-    -c:a libopus -b:a 96k                                  \
+    -c:a libopus -b:a 96k -map 0                           \
     -f webm ${VID2WEBM_OPT_3} -- "$TMPOUT"
 
 touch -r "$1" -- "$TMPOUT"
