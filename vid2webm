@@ -37,7 +37,7 @@ ffmpeg -nostdin -hide_banner -i "$1"                       \
     -c:v libvpx-vp9 -pass 1 -crf $crf -b:v 0               \
     -threads 1 -tile-columns 1 -frame-parallel 1 -speed 1  \
     -passlogfile /tmp/vid2webm/passlog-$$                  \
-    -c:a copy                                              \
+    -c:a copy -map 0                                       \
     -f matroska -y ${VID2WEBM_OPT_3} /dev/null
 
 ffmpeg -nostdin -hide_banner -i "$1"                       \
