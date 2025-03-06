@@ -58,4 +58,4 @@ ffmpeg -nostdin -hide_banner -i "$1"                       \
 
 touch -r "$1" -- "$TMPOUT"
 mv -- "$TMPOUT" "$OUT"
-mv /tmp/vid2webm/passlog-$$-0.log /tmp/vid2webm/done/ 2>/dev/null || true
+mv /tmp/vid2webm/passlog-$$-*.log /tmp/vid2webm/done/ 2>/dev/null || true
