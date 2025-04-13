@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Image files from FLIR camera have additional data embedded.
+# This script extracts some.
+
+if [ "x$1" = "x--" ]; then
+    shift
+fi
+
+while [ $# -gt 0 ]; do
+    src="$1"
+    basename="${1%.*}"
+    shift
+
+    echo "$basename"
+    exiftool -b -EmbeddedImage "$src" > "${basename}.photo.jpg"
+    exiftool -b -RawThermalImage "$src" > "${basename}.rawthermal"
+    exiftool -b -Palette "$src" > "${basename}.palette"
+done
