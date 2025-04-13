@@ -16,7 +16,7 @@ if [ "x$1" = "x--" ]; then
 fi
 
 while (($#)); do
-    ffmpeg -nostdin -hide_banner -y -i "$1" -c copy -map 0 "$TMP4" && \
+    ffmpeg -nostdin -hide_banner -y -i "$1" -c copy -map 0 -write_tmcd 0 "$TMP4" && \
     ffmpeg -nostdin -hide_banner -i "$TMP4" -c copy -map 0 -f webm -- "$1"- && \
     touch -r "$1" -- "$1"-
     rm "$TMP4"
