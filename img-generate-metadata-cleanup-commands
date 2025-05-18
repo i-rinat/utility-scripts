@@ -9,5 +9,5 @@ find . -type f -name '*.jpg' | while read i; do
     efn=$(printf "%q" "$i")
     tmpfn=$(printf "%q" "${i%.*}.tmp")
     # This drops ICC profiles too. Maybe they are worth keeping?
-    echo "jpegtran -perfect -copy none -optimize $efn > $tmpfn && mv -- $tmpfn $efn && jhead -q -purejpg $efn && jhead -q -mkexif $efn && exiftool -q -P -overwrite_original -all= -- $efn || echo \"something-wrong-with: $efn\" >> log.\$\$"
+    echo "jpegtran -perfect -copy none -optimize $efn > $tmpfn && touch -r $efn $tmpfn && mv -- $tmpfn $efn && jhead -q -purejpg $efn && jhead -q -mkexif $efn && exiftool -q -P -overwrite_original -all= -- $efn || echo \"something-wrong-with: $efn\" >> log.\$\$"
 done
