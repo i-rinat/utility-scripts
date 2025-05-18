@@ -7,13 +7,21 @@ if [ "x$1" = "x--" ]; then
     shift
 fi
 
+extractEmbedded()
+{
+    what="$1"
+    src="$2"
+    dst="$3"
+    exiftool -b -"$what" "$src" > "$dst" && touch -r "$src" "$dst"
+}
+
 while [ $# -gt 0 ]; do
     src="$1"
     basename="${1%.*}"
     shift
 
     echo "$basename"
-    exiftool -b -EmbeddedImage "$src" > "${basename}.photo.jpg"
-    exiftool -b -RawThermalImage "$src" > "${basename}.rawthermal"
-    exiftool -b -Palette "$src" > "${basename}.palette"
+    extractEmbedded EmbeddedImage   "$src" "${basename}.photo.jpg"
+    extractEmbedded RawThermalImage "$src" "${basename}.rawthermal"
+    extractEmbedded Palette         "$src" "${basename}.palette"
 done
